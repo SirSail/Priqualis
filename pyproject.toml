@@ -32,36 +32,36 @@ classifiers = [
 
 dependencies = [
     # Core
-    "pydantic>=2.5",
-    "pydantic-settings>=2.1",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.6",
     "pyyaml>=6.0",
     # Data processing
-    "polars>=0.20",
-    "duckdb>=0.9",
-    "pyarrow>=14.0",
+    "polars>=1.20",
+    "duckdb>=1.1",
+    "pyarrow>=18.0",
     # Search
-    "whoosh>=2.7",
-    "qdrant-client>=1.7",
+    "bm25s>=0.2",
+    "qdrant-client>=1.12",
     # Embeddings
-    "sentence-transformers>=2.2",
+    "sentence-transformers>=3.3",
     # API
-    "fastapi>=0.109",
-    "uvicorn[standard]>=0.27",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
     # UI
-    "streamlit>=1.30",
+    "streamlit>=1.40",
     # Utils
-    "httpx>=0.26",
+    "httpx>=0.28",
     "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.4",
-    "pytest-cov>=4.1",
-    "pytest-asyncio>=0.23",
-    "ruff>=0.1",
-    "mypy>=1.8",
-    "pre-commit>=3.6",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
 ]
 docs = [
     "mkdocs>=1.5",
