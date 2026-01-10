@@ -13,12 +13,24 @@ from priqualis.shadow.fpa import (
     RejectionImporter,
     RejectionRecord,
 )
+from priqualis.shadow.alerts import (
+    Alert,
+    AlertConfig,
+    AnomalyDetector,
+    AlertManager,
+)
 
 __all__ = [
+    # FPA
     "FPAReport",
     "FPATrend",
     "FPATracker",
     "NFZ_ERROR_MAPPING",
     "RejectionImporter",
     "RejectionRecord",
+    # Alerts
+    "Alert",
+    "AlertConfig",
+    "AnomalyDetector",
+    "AlertManager",
 ]
