@@ -11,7 +11,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
-from api.deps import get_importer, get_rule_engine
+from api.deps import get_fpa_tracker, get_importer, get_rule_engine
+from priqualis.shadow import FPATracker
 from priqualis.etl import ClaimImporter
 from priqualis.etl.schemas import ClaimBatch
 from priqualis.rules import RuleEngine, ValidationReport
@@ -65,6 +66,7 @@ class ValidateBatchResponse(BaseModel):
 async def validate_batch(
     request: ValidateBatchRequest,
     rule_engine: RuleEngine = Depends(get_rule_engine),
+    fpa_tracker: FPATracker = Depends(get_fpa_tracker),
 ) -> ValidateBatchResponse:
     """
     Validate a batch of claims against rules.
@@ -106,9 +108,14 @@ async def validate_batch(
     ]
 
     processing_time = (time.perf_counter() - start_time) * 1000
+    batch_id = f"batch_{int(time.time())}"
+
+    # Record submission for FPA tracking
+    case_ids = [r.case_id for r in records]
+    fpa_tracker.record_submission(batch_id, case_ids)
 
     return ValidateBatchResponse(
-        batch_id=f"batch_{int(time.time())}",
+        batch_id=batch_id,
         total_claims=report.total_records,
         violations=report.violation_count,
         warnings=report.warning_count,

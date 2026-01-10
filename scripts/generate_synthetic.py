@@ -128,14 +128,16 @@ ADMISSION_MODES = ["emergency", "planned", "transfer"]
 
 # Error types to inject
 ERROR_TYPES = [
-    "missing_icd10_main",      # 5% - No main diagnosis
-    "jgp_procedure_mismatch",  # 5% - Wrong procedures for JGP
-    "missing_required_field",  # 4% - Missing mandatory field
-    "invalid_date_range",      # 3% - Discharge before admission
-    "invalid_admission_mode",  # 3% - Invalid admission mode value
+    "missing_icd10_main",      # 5% - No main diagnosis → R001
+    "invalid_date_range",      # 3% - Discharge before admission → R002
+    "missing_jgp_code",        # 4% - Missing JGP code → R003
+    "missing_procedures",      # 3% - No procedures → R004
+    "invalid_admission_mode",  # 3% - Invalid admission mode → R005
+    "missing_department",      # 3% - Missing department code → R006
+    "zero_tariff",             # 2% - Zero or negative tariff → R007
 ]
 
-ERROR_WEIGHTS = [0.25, 0.25, 0.20, 0.15, 0.15]  # Probability weights
+ERROR_WEIGHTS = [0.22, 0.13, 0.17, 0.13, 0.13, 0.13, 0.09]  # Probability weights
 
 
 # =============================================================================
@@ -256,27 +258,33 @@ def inject_error(claim: dict[str, Any], error_type: str) -> dict[str, Any]:
     claim["error_type"] = error_type
 
     if error_type == "missing_icd10_main":
+        # R001: Missing main diagnosis
         claim["icd10_main"] = None
 
-    elif error_type == "jgp_procedure_mismatch":
-        # Replace procedures with wrong ones (not matching JGP)
-        jgp_procedures = JGP_CODES[claim["jgp_code"]]["procedures"]
-        wrong_procedures = [p for p in PROCEDURE_CODES if p not in jgp_procedures]
-        claim["procedures"] = random.sample(wrong_procedures, k=min(2, len(wrong_procedures)))
-
-    elif error_type == "missing_required_field":
-        # Remove one of: jgp_code, department_code, patient_id
-        field_to_remove = random.choice(["jgp_code", "department_code"])
-        claim[field_to_remove] = None
-
     elif error_type == "invalid_date_range":
-        # Make discharge_date before admission_date
+        # R002: Discharge before admission
         admission = datetime.strptime(claim["admission_date"], "%Y-%m-%d")
         claim["discharge_date"] = (admission - timedelta(days=random.randint(1, 5))).strftime("%Y-%m-%d")
 
+    elif error_type == "missing_jgp_code":
+        # R003: Missing JGP code
+        claim["jgp_code"] = None
+
+    elif error_type == "missing_procedures":
+        # R004: No procedures recorded
+        claim["procedures"] = []
+
     elif error_type == "invalid_admission_mode":
-        # Set invalid admission mode
+        # R005: Invalid admission mode
         claim["admission_mode"] = random.choice(["unknown", "invalid", ""])
+
+    elif error_type == "missing_department":
+        # R006: Missing department code
+        claim["department_code"] = None
+
+    elif error_type == "zero_tariff":
+        # R007: Zero or negative tariff
+        claim["tariff_value"] = 0.0  # Will fail R007 rule
 
     return claim
 

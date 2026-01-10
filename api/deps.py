@@ -18,6 +18,7 @@ from priqualis.search import (
     SimilarityService,
     VectorStore,
 )
+from priqualis.shadow import FPATracker
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,19 @@ def get_similarity_service() -> SimilarityService:
 
 
 # =============================================================================
+# FPA Services
+# =============================================================================
+
+
+@lru_cache
+def get_fpa_tracker() -> FPATracker:
+    """Get FPA tracker instance."""
+    settings = get_api_settings()
+    storage_path = Path(settings.data_processed_path) / "fpa" if settings.data_processed_path else None
+    return FPATracker(storage_path=storage_path)
+
+
+# =============================================================================
 # Cleanup
 # =============================================================================
 
@@ -111,3 +125,4 @@ def clear_caches() -> None:
     get_patch_applier.cache_clear()
     get_embedding_service.cache_clear()
     get_similarity_service.cache_clear()
+    get_fpa_tracker.cache_clear()
