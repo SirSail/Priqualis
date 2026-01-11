@@ -94,3 +94,7 @@ Thumbs.db
 *.pem
 *.key
 secrets/
+
+# Temp test files
+test_temp.csv
+*_temp.csv

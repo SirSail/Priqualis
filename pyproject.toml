@@ -68,8 +68,9 @@ docs = [
     "mkdocs-material>=9.5",
 ]
 
-[project.scripts]
-priqualis = "priqualis.core.cli:main"
+# CLI disabled until priqualis.core.cli module is implemented
+# [project.scripts]
+# priqualis = "priqualis.core.cli:main"
 
 [project.urls]
 Repository = "https://github.com/SirSail/Priqualis"

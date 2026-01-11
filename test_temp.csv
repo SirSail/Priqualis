@@ -1,2 +1,0 @@
-case_id,patient_id,pesel_masked,birth_date,gender,admission_date,discharge_date,admission_mode,department_code,jgp_code,jgp_name,tariff_value,icd10_main,icd10_secondary,procedures,status,has_error,error_type
-ENC1,PAT1,PESEL_abc,1990-01-01,M,2024-01-15,2024-01-18,emergency,4000,A01,Test,1000.0,J18.9,E11.9,88.761,new,false,""

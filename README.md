@@ -95,14 +95,17 @@ python scripts/generate_synthetic.py --count 10000 --output data/raw/claims.parq
 
 ```bash
 # Option 1: Run Streamlit UI (recommended for demo)
-streamlit run app.py
+python -m streamlit run ui/app.py
 
 # Option 2: Run FastAPI backend
-uvicorn api.main:app --reload --port 8000
+python -m uvicorn api.main:app --reload --port 8000
 
 # Option 3: Run demo script (ETL + validation + autofix)
 python scripts/demo.py
 ```
+
+> **💡 Windows Note:** If `streamlit` or `uvicorn` commands fail with "not recognized", 
+> use `python -m streamlit` or `python -m uvicorn` as shown above.
 
 ---
 
@@ -110,48 +113,62 @@ python scripts/demo.py
 
 ```
 Priqualis-bigdata/
-├── app.py                   # 🖥️ Streamlit UI (main entry point)
+├── ui/
+│   └── app.py               # 🖥️ Streamlit UI (main entry point)
+├── api/
+│   ├── main.py              # FastAPI application
+│   ├── deps.py              # Dependency injection
+│   └── routes/              # API endpoints
+│       ├── validate.py      # POST /api/v1/validate
+│       ├── similar.py       # POST /api/v1/similar
+│       ├── autofix.py       # POST /api/v1/autofix/*
+│       └── reports.py       # GET /api/v1/reports/*
 ├── config/
 │   └── rules/               # YAML validation rules
 │       ├── base.yaml        # R001-R005: core rules
-│       └── jgp_validation.yaml
+│       └── jgp_validation.yaml  # R006-R007: JGP-specific
 ├── data/
 │   ├── raw/                 # Input data (claims.parquet)
-│   └── processed/           # ETL output + approved claims index
-│
-├── # Core Modules
-├── importers.py             # CSV/Parquet data loading
-├── schemas.py               # Pydantic models (ClaimRecord, ClaimBatch)
-├── pii_masking.py           # PESEL/name masking with deterministic hash
-├── processor.py             # ETL pipeline orchestration
-│
-├── # Rule Engine
-├── engine.py                # RuleEngine, RuleExecutor, YAML parser
-├── models.py                # RuleDefinition, RuleResult, ValidationReport
-├── scoring.py               # Impact score calculation
-│
-├── # Search & Similarity
-├── bm25.py                  # BM25 sparse retrieval (bm25s)
-├── vector.py                # Qdrant vector store + embeddings
-├── hybrid.py                # RRF/Linear fusion of BM25 + vector
-├── rerank.py                # Cross-encoder reranking
-├── service.py               # SimilarityService orchestration
-│
-├── # AutoFix
-├── generator.py             # Patch generation from violations
-├── applier.py               # Patch application (dry-run/commit)
-│
-├── # Shadow Mode
-├── fpa.py                   # FPA tracker, rejection import
-├── alerts.py                # Anomaly detection (Z-score)
-│
-├── # LLM & Reports
-├── explainer.py             # Violation explanations with LLM
-├── rag.py                   # RAG store for NFZ rule snippets
-│
-├── # Configuration
-├── config.py                # Settings (pydantic-settings)
-├── exceptions.py            # Custom exceptions
+│   ├── processed/           # ETL output
+│   └── fixtures/            # Sample test data
+├── scripts/
+│   ├── demo.py              # Full pipeline demo
+│   ├── generate_synthetic.py    # Synthetic data generator
+│   └── benchmark_fpa_search.py  # Performance benchmark
+├── src/priqualis/           # 📦 Main package
+│   ├── core/                # Config, exceptions
+│   │   ├── config.py        # Settings (pydantic-settings)
+│   │   └── exceptions.py    # Custom exceptions
+│   ├── etl/                 # Data processing
+│   │   ├── importers.py     # CSV/Parquet loading
+│   │   ├── schemas.py       # Pydantic models (ClaimRecord, ClaimBatch)
+│   │   ├── pii_masking.py   # PESEL/name masking
+│   │   └── processor.py     # ETL pipeline
+│   ├── rules/               # Validation engine
+│   │   ├── engine.py        # RuleEngine, YAML parser
+│   │   ├── models.py        # RuleResult, ValidationReport
+│   │   └── scoring.py       # Impact score calculation
+│   ├── search/              # Similarity search
+│   │   ├── bm25.py          # BM25 sparse retrieval
+│   │   ├── vector.py        # Qdrant vector store
+│   │   ├── hybrid.py        # RRF/Linear fusion
+│   │   ├── rerank.py        # Cross-encoder reranking
+│   │   └── service.py       # SimilarityService
+│   ├── autofix/             # Patch generation
+│   │   ├── generator.py     # Patch generation from violations
+│   │   └── applier.py       # Patch application
+│   ├── shadow/              # FPA tracking
+│   │   ├── fpa.py           # FPA tracker, rejection import
+│   │   └── alerts.py        # Anomaly detection (Z-score)
+│   ├── llm/                 # AI explanations
+│   │   ├── explainer.py     # Violation explanations
+│   │   └── rag.py           # RAG store for NFZ rules
+│   └── reports/             # Report generation
+│       └── generator.py     # Markdown/PDF/JSON reports
+├── tests/                   # 🧪 Unit tests (74 tests)
+│   ├── test_etl/
+│   ├── test_rules/
+│   └── test_search/
 ├── pyproject.toml           # Dependencies & build config
 └── README.md
 ```
@@ -269,7 +286,7 @@ pytest tests/test_rules/ -v
 pytest tests/test_search/ -v
 
 # Run benchmark
-python benchmark_fpa_search.py
+python scripts/benchmark_fpa_search.py
 ```
 
 ---

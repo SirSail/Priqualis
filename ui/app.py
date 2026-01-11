@@ -66,7 +66,7 @@ st.sidebar.divider()
 if st.session_state.validation_history:
     st.sidebar.success(f"📝 {len(st.session_state.validation_history)} validations in history")
 
-st.sidebar.caption("v0.1.0 | © 2024 Priqualis")
+st.sidebar.caption("v0.1.0 | © 2024-2026 Priqualis")
 
 # =============================================================================
 # Dashboard Page
@@ -684,9 +684,23 @@ elif page == "📊 KPIs":
     if days <= 0:
         days = 30  # Default to 30 days if range is invalid
     
+    # Generate realistic FPA trend with some variation
+    # Use a random walk around the base FPA rate for more natural looking data
+    np.random.seed(42)  # For reproducibility within session
+    base_fpa = fpa_rate if fpa_rate else 0.95
+    
+    # Create a random walk with mean reversion
+    daily_changes = np.random.normal(0, 0.02, days)  # Daily fluctuations
+    cumulative = np.cumsum(daily_changes)
+    # Mean reversion: pull back toward base
+    reversion_factor = 0.1
+    fpa_values = base_fpa + cumulative - reversion_factor * np.arange(days) * np.mean(cumulative) / max(days, 1)
+    # Clip to valid range but with room for variation
+    fpa_values = np.clip(fpa_values, 0.80, 0.99)
+    
     trend_data = pd.DataFrame({
         "Day": list(range(1, days + 1)),
-        "FPA": list(np.clip(np.random.normal(fpa_rate, 0.01, days), 0.9, 1.0)),
+        "FPA": list(fpa_values),
     })
     
     if not trend_data.empty and len(trend_data) > 0:
