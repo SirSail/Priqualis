@@ -10,13 +10,11 @@ import uuid
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal
 
 import yaml
 
 from priqualis.autofix.generator import AuditEntry, Patch, PatchOperation
 from priqualis.core.exceptions import AutoFixError
-from priqualis.rules.models import AutoFixOperation
 
 logger = logging.getLogger(__name__)
 

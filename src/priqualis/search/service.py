@@ -5,19 +5,15 @@ High-level service for finding similar approved cases.
 """
 
 import logging
-from pathlib import Path
-from typing import Any
 
-from priqualis.core.config import get_settings
 from priqualis.search.bm25 import BM25Index
 from priqualis.search.hybrid import HybridSearch
 from priqualis.search.models import (
     AttributeDiff,
+    CaseStatus,
     DiffType,
     SearchQuery,
-    SearchResult,
     SimilarCase,
-    CaseStatus,
 )
 from priqualis.search.rerank import Reranker, get_reranker
 from priqualis.search.vector import EmbeddingService, VectorStore

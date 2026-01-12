@@ -11,8 +11,8 @@ from typing import Protocol
 
 from pydantic import BaseModel, Field
 
-from priqualis.rules.models import RuleResult
 from priqualis.llm.rag import RAGStore, get_default_rag_store
+from priqualis.rules.models import RuleResult
 
 logger = logging.getLogger(__name__)
 

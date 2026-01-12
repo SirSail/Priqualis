@@ -7,7 +7,7 @@ Loads claim data from various file formats (CSV, XML, Parquet).
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Protocol
 
 import polars as pl
 from pydantic import ValidationError

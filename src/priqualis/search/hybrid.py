@@ -7,8 +7,6 @@ Combines BM25 sparse retrieval with vector dense retrieval.
 import logging
 from typing import Literal
 
-import numpy as np
-
 from priqualis.search.bm25 import BM25Index
 from priqualis.search.models import SearchQuery, SearchResult, SearchSource
 from priqualis.search.vector import EmbeddingService, VectorStore

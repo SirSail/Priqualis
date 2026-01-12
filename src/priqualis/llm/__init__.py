@@ -6,9 +6,9 @@ Uses RAG with NFZ rule snippets for context.
 """
 
 from .explainer import (
-    ViolationExplainer,
     ExplainerConfig,
     Explanation,
+    ViolationExplainer,
 )
 from .rag import (
     RAGStore,

@@ -5,14 +5,12 @@ Qdrant-based vector storage for semantic search.
 """
 
 import logging
-from pathlib import Path
-from typing import Any, Protocol
 from functools import lru_cache
+from typing import Protocol
 
 import numpy as np
 
 from priqualis.core.config import get_settings
-from priqualis.core.exceptions import SearchError
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +219,7 @@ class VectorStore:
         Args:
             vector_size: Embedding dimension (384 for e5-small)
         """
-        from qdrant_client.models import Distance, VectorParams, HnswConfigDiff
+        from qdrant_client.models import Distance, HnswConfigDiff, VectorParams
 
         # Check if exists
         collections = self.client.get_collections().collections
@@ -312,7 +310,7 @@ class VectorStore:
         Returns:
             List of (case_id, score, payload) tuples
         """
-        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        from qdrant_client.models import FieldCondition, Filter, MatchValue
 
         # Build filter if provided
         query_filter = None

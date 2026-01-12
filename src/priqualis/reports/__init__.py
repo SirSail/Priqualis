@@ -5,8 +5,8 @@ Generates validation reports in various formats (Markdown, PDF, JSON).
 """
 
 from .generator import (
-    ReportGenerator,
     ReportConfig,
+    ReportGenerator,
     generate_batch_report,
 )
 

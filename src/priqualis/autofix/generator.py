@@ -6,8 +6,7 @@ Generates patches (autofix suggestions) for rule violations.
 
 import logging
 from datetime import datetime
-from enum import Enum
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 

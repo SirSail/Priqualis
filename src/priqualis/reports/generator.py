@@ -5,12 +5,12 @@ Generates validation reports in Markdown, PDF, and JSON formats.
 """
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from priqualis.rules.models import ValidationReport, RuleResult
+from priqualis.rules.models import ValidationReport
 
 logger = logging.getLogger(__name__)
 

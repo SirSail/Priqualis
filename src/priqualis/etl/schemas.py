@@ -6,10 +6,8 @@ Pydantic models for claim data validation and serialization.
 
 from datetime import date
 from enum import Enum
-from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator
-
 
 # =============================================================================
 # Enums

@@ -6,12 +6,11 @@ FastAPI application for healthcare claim validation and compliance.
 
 import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import validate, similar, autofix, reports
+from api.routes import autofix, reports, similar, validate
 
 logger = logging.getLogger(__name__)
 

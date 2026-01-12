@@ -11,10 +11,9 @@ from typing import Any, Protocol
 
 import yaml
 
-from priqualis.core.exceptions import RuleEngineError, RuleExecutionError, RuleParseError
+from priqualis.core.exceptions import RuleExecutionError, RuleParseError
 from priqualis.etl.schemas import ClaimBatch, ClaimRecord
 from priqualis.rules.models import (
-    AutoFixOperation,
     RuleDefinition,
     RuleResult,
     RuleSeverity,

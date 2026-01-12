@@ -8,7 +8,7 @@ import logging
 from dataclasses import dataclass
 from typing import Protocol
 
-from priqualis.rules.models import RuleResult, RuleSeverity
+from priqualis.rules.models import RuleResult
 
 logger = logging.getLogger(__name__)
 

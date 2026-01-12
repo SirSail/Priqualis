@@ -10,9 +10,8 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from api.deps import get_patch_applier, get_patch_generator, get_rule_engine
-from priqualis.autofix import Patch, PatchApplier, PatchGenerator
-from priqualis.rules import RuleEngine
+from api.deps import get_patch_applier, get_patch_generator
+from priqualis.autofix import PatchApplier, PatchGenerator
 
 logger = logging.getLogger(__name__)
 

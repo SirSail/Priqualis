@@ -5,7 +5,7 @@ Provides hybrid similarity search (BM25 + Vector) for healthcare claims.
 """
 
 from priqualis.search.bm25 import BM25Index, SimpleTokenizer
-from priqualis.search.hybrid import HybridSearch, reciprocal_rank_fusion, linear_fusion
+from priqualis.search.hybrid import HybridSearch, linear_fusion, reciprocal_rank_fusion
 from priqualis.search.models import (
     AttributeDiff,
     CaseStatus,

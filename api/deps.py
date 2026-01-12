@@ -9,7 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from priqualis.autofix import PatchApplier, PatchGenerator
-from priqualis.core.config import get_settings, Settings
+from priqualis.core.config import Settings, get_settings
 from priqualis.etl import ClaimImporter
 from priqualis.rules import RuleEngine
 from priqualis.search import (

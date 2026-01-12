@@ -7,7 +7,7 @@ Data models for hybrid search (BM25 + Vector).
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Literal
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

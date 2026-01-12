@@ -5,9 +5,7 @@ Stores and retrieves rule documentation snippets for LLM context.
 """
 
 import logging
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field

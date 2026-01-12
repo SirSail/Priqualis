@@ -11,12 +11,12 @@ from priqualis.autofix.applier import (
     export_patches_yaml,
 )
 from priqualis.autofix.generator import (
-    AuditEntry,
     DEFAULT_VALUES,
+    SUGGESTED_FIXES,
+    AuditEntry,
     Patch,
     PatchGenerator,
     PatchOperation,
-    SUGGESTED_FIXES,
 )
 
 __all__ = [

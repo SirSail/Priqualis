@@ -8,14 +8,14 @@ import logging
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, UploadFile
 from pydantic import BaseModel, Field
 
 from api.deps import get_fpa_tracker, get_importer, get_rule_engine
-from priqualis.shadow import FPATracker
 from priqualis.etl import ClaimImporter
 from priqualis.etl.schemas import ClaimBatch
-from priqualis.rules import RuleEngine, ValidationReport
+from priqualis.rules import RuleEngine
+from priqualis.shadow import FPATracker
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,6 @@ Pydantic models for rule definitions and execution results.
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 

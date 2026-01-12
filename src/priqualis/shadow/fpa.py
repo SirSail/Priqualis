@@ -12,9 +12,8 @@ This module:
 
 import logging
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
-from typing import Any, Literal
 
 import polars as pl
 from pydantic import BaseModel, Field
