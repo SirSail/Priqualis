@@ -1,175 +1,68 @@
-"""
-PII Masking for Priqualis.
-
-Masks personally identifiable information (PII) in claim data.
-"""
+"""PII Masking for Priqualis."""
 
 import hashlib
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Callable, Protocol, Any
+from typing import Callable, Any
 
 import polars as pl
 
 logger = logging.getLogger(__name__)
 
-
-# =============================================================================
-# Protocols (Dependency Inversion)
-# =============================================================================
-
-
-class MaskingStrategy(Protocol):
-    """Protocol for masking strategies."""
-
-    def __call__(self, value: str) -> str:
-        """Mask a single value."""
-        ...
-
-
-class DataFrameMasker(Protocol):
-    """Protocol for DataFrame masking."""
-
-    def mask_dataframe(self, df: pl.DataFrame) -> tuple[pl.DataFrame, int]:
-        """Mask PII in DataFrame, return (masked_df, count)."""
-        ...
-
-
-# =============================================================================
-# Masking Strategies
-# =============================================================================
-
-
 def mask_pesel(value: str) -> str:
-    """
-    Mask PESEL with deterministic hash.
-
-    Uses SHA-256 hash (first 8 chars) for consistent masking
-    across batches, enabling joins on masked data.
-
-    Args:
-        value: Original PESEL (11 digits)
-
-    Returns:
-        Masked value in format PESEL_XXXXXXXX
-    """
-    # Guard clause
+    """Mask PESEL with deterministic SHA-256 hash (first 8 chars)."""
     if not value or len(value) != 11:
         return value
-
-    hash_val = hashlib.sha256(value.encode()).hexdigest()[:8]
-    return f"PESEL_{hash_val}"
-
+    return f"PESEL_{hashlib.sha256(value.encode()).hexdigest()[:8]}"
 
 def mask_name(value: str) -> str:
-    """
-    Mask patient name with deterministic hash.
-
-    Args:
-        value: Original name
-
-    Returns:
-        Masked value in format PAT_XXXXXXXX
-    """
-    if not value:
-        return value
-
-    hash_val = hashlib.sha256(value.encode()).hexdigest()[:8].upper()
-    return f"PAT_{hash_val}"
-
+    if not value: return value
+    return f"PAT_{hashlib.sha256(value.encode()).hexdigest()[:8].upper()}"
 
 def mask_address(value: str) -> str:
-    """Mask address with placeholder."""
-    if not value:
-        return value
-    return "[MASKED_ADDRESS]"
-
+    return "[MASKED_ADDRESS]" if value else value
 
 def mask_phone(value: str) -> str:
-    """Mask phone number with placeholder."""
-    if not value:
-        return value
-    return "[MASKED_PHONE]"
-
+    return "[MASKED_PHONE]" if value else value
 
 def mask_email(value: str) -> str:
-    """Mask email address with placeholder."""
-    if not value:
-        return value
-    return "[MASKED_EMAIL]"
+    return "[MASKED_EMAIL]" if value else value
 
-
-# =============================================================================
-# Regex Patterns (compiled at module load)
-# =============================================================================
-
-
-# PESEL: 11 consecutive digits
+# Regex Patterns
 PESEL_PATTERN = re.compile(r"\b\d{11}\b")
-
-# Polish phone numbers (various formats)
-PHONE_PATTERN = re.compile(
-    r"\b(?:\+48\s?)?(?:\d{3}[\s-]?\d{3}[\s-]?\d{3}|\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2})\b"
-)
-
-# Email pattern
+PHONE_PATTERN = re.compile(r"\b(?:\+48\s?)?(?:\d{3}[\s-]?\d{3}[\s-]?\d{3}|\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2})\b")
 EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
 
-
-# Default protected fields (identifiers and codes that should never be masked)
+# Protected fields
 DEFAULT_PROTECTED_FIELDS: frozenset[str] = frozenset({
-    "case_id",
-    "patient_id",
-    "pesel_masked",
-    "jgp_code",
-    "department_code",
-    "icd10_main",
-    "icd10_secondary",
-    "procedures",
+    "case_id", "patient_id", "pesel_masked", "jgp_code",
+    "department_code", "icd10_main", "icd10_secondary", "procedures",
 })
-
-
-# =============================================================================
-# Field Configuration
-# =============================================================================
-
 
 @dataclass(slots=True, frozen=True)
 class MaskingRule:
-    """Immutable configuration for masking a specific field."""
-
     field_name: str
     mask_fn: Callable[[str], str]
     description: str = ""
 
-
-def get_default_masking_rules() -> tuple[MaskingRule, ...]:
-    """Get default masking rules. Immutable tuple for safety."""
-    return (
-        MaskingRule("pesel", mask_pesel, "PESEL national ID"),
-        MaskingRule("pesel_raw", mask_pesel, "Raw PESEL"),
-        MaskingRule("patient_name", mask_name, "Patient name"),
-        MaskingRule("name", mask_name, "Name field"),
-        MaskingRule("surname", mask_name, "Surname field"),
-        MaskingRule("address", mask_address, "Address"),
-        MaskingRule("phone", mask_phone, "Phone number"),
-        MaskingRule("email", mask_email, "Email address"),
-    )
+DEFAULT_MASKING_RULES = (
+    MaskingRule("pesel", mask_pesel),
+    MaskingRule("pesel_raw", mask_pesel),
+    MaskingRule("patient_name", mask_name),
+    MaskingRule("name", mask_name),
+    MaskingRule("surname", mask_name),
+    MaskingRule("address", mask_address),
+    MaskingRule("phone", mask_phone),
+    MaskingRule("email", mask_email),
+)
 
 
 @dataclass(slots=True)
 class PIIMasker:
-    """
-    Masks PII fields in claim data.
-
-    Supports both column-level masking (specific fields) and
-    content-level masking (regex patterns in text fields).
-
-    Implements DataFrameMasker protocol for DI compatibility.
-    """
-
-    field_rules: tuple[MaskingRule, ...] = field(default_factory=get_default_masking_rules)
+    """Masks PII fields in claim data."""
+    
+    field_rules: tuple[MaskingRule, ...] = DEFAULT_MASKING_RULES
     scan_content: bool = True
     protected_fields: frozenset[str] = DEFAULT_PROTECTED_FIELDS
 

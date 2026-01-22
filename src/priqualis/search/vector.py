@@ -15,22 +15,7 @@ from priqualis.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# Protocols
-# =============================================================================
 
-
-class EmbeddingModel(Protocol):
-    """Protocol for embedding generation."""
-
-    def encode(self, texts: list[str]) -> np.ndarray:
-        """Encode texts to embeddings."""
-        ...
-
-
-# =============================================================================
-# Embedding Service
-# =============================================================================
 
 
 class EmbeddingService:
@@ -157,41 +142,10 @@ class EmbeddingService:
         logger.debug("Cleared embedding cache")
 
 
-# =============================================================================
-# Vector Store (Qdrant)
-# =============================================================================
-
-
 class VectorStore:
-    """
-    Qdrant vector store for ANN search.
-
-    Supports both remote Qdrant server and in-memory mode for development.
-    """
-
-    def __init__(
-        self,
-        collection: str = "claims",
-        host: str | None = None,
-        port: int = 6333,
-        api_key: str | None = None,
-        in_memory: bool = False,
-    ):
-        """
-        Initialize vector store.
-
-        Args:
-            collection: Collection name
-            host: Qdrant host (None for in-memory)
-            port: Qdrant port
-            api_key: Optional API key
-            in_memory: Use in-memory storage (for dev/testing)
-        """
-        self.collection = collection
-        self.host = host
-        self.port = port
-        self.api_key = api_key
-        self.in_memory = in_memory
+    """Qdrant vector store."""
+    def __init__(self, collection: str = "claims", host: str | None = None, port: int = 6333, api_key: str | None = None, in_memory: bool = False):
+        self.collection, self.host, self.port, self.api_key, self.in_memory = collection, host, port, api_key, in_memory
         self._client = None
 
     @property

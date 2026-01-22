@@ -22,9 +22,7 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# Models
-# =============================================================================
+
 
 
 class RejectionRecord(BaseModel):
@@ -66,9 +64,7 @@ class FPATrend:
     moving_average: list[float] = field(default_factory=list)
 
 
-# =============================================================================
-# Error Code Mapping (NFZ → Priqualis)
-# =============================================================================
+
 
 
 NFZ_ERROR_MAPPING: dict[str, str] = {
@@ -82,9 +78,7 @@ NFZ_ERROR_MAPPING: dict[str, str] = {
 }
 
 
-# =============================================================================
-# Rejection Importer
-# =============================================================================
+
 
 
 class RejectionImporter:
@@ -155,9 +149,7 @@ class RejectionImporter:
         return records
 
 
-# =============================================================================
-# FPA Tracker
-# =============================================================================
+
 
 
 class FPATracker:

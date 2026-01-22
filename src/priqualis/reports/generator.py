@@ -1,427 +1,107 @@
-"""
-Report Generator for Priqualis.
-
-Generates validation reports in Markdown, PDF, and JSON formats.
-"""
+"""Report Generator for Priqualis."""
 
 import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
-
 from priqualis.rules.models import ValidationReport
 
 logger = logging.getLogger(__name__)
 
-
-# =============================================================================
-# Configuration
-# =============================================================================
-
-
 @dataclass(slots=True, frozen=True)
 class ReportConfig:
-    """
-    Configuration for report generation.
-    
-    Attributes:
-        title: Report title
-        include_violations_detail: Include per-case violation details
-        include_recommendations: Generate AI recommendations
-        max_violations_shown: Limit violations in detail section
-        language: Report language (pl/en)
-    """
-
     title: str = "Priqualis Validation Report"
     include_violations_detail: bool = True
     include_recommendations: bool = True
     max_violations_shown: int = 50
     language: Literal["pl", "en"] = "en"
 
-
 DEFAULT_CONFIG = ReportConfig()
 
-
-# =============================================================================
-# Report Generator
-# =============================================================================
-
-
 class ReportGenerator:
-    """
-    Generates validation reports in multiple formats.
-    
-    Supports Markdown, PDF (via weasyprint), and JSON output.
-    """
+    """Generates validation reports (MD, PDF, JSON)."""
 
     def __init__(self, config: ReportConfig | None = None):
-        """
-        Initialize generator.
-
-        Args:
-            config: Report configuration
-        """
         self.config = config or DEFAULT_CONFIG
 
-    def generate_markdown(
-        self,
-        report: ValidationReport,
-        batch_id: str | None = None,
-    ) -> str:
-        """
-        Generate Markdown report.
-
-        Args:
-            report: Validation report from RuleEngine
-            batch_id: Optional batch identifier
-
-        Returns:
-            Markdown string
-        """
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    def generate_markdown(self, report: ValidationReport, batch_id: str | None = None) -> str:
         batch_id = batch_id or f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-        # Calculate metrics
         pass_rate = report.pass_rate * 100
-        violation_rate = (1 - report.pass_rate) * 100
-
-        # Count by rule
-        from collections import Counter
-        rule_counts = Counter(v.rule_id for v in report.violations)
-        top_rules = rule_counts.most_common(5)
-
-        # Build markdown
+        
+        # Summary
         lines = [
             f"# {self.config.title}",
-            "",
-            f"**Batch ID:** `{batch_id}`",
-            f"**Generated:** {timestamp}",
-            "",
-            "---",
-            "",
+            f"\n**Batch:** `{batch_id}` | **Date:** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n",
             "## 📊 Summary",
-            "",
-            "| Metric | Value |",
-            "|--------|-------|",
-            f"| Total Claims | {report.total_records:,} |",
-            f"| ✅ Passed | {report.total_records - report.violation_count:,} ({pass_rate:.1f}%) |",
-            f"| ❌ Violations | {report.violation_count:,} ({violation_rate:.1f}%) |",
-            f"| ⚠️ Warnings | {report.warning_count:,} |",
-            "",
+            f"**Total:** {report.total_records:,} | **Passed:** {report.total_records - report.violation_count:,} ({pass_rate:.1f}%) | **Violations:** {report.violation_count:,} | **Warnings:** {report.warning_count:,}\n"
         ]
 
-        # Top violation rules
+        # Top Rules
+        from collections import Counter
+        top_rules = Counter(v.rule_id for v in report.violations).most_common(5)
         if top_rules:
-            lines.extend([
-                "## 🔝 Top Violation Rules",
-                "",
-                "| Rank | Rule ID | Count | % of Violations |",
-                "|------|---------|-------|-----------------|",
-            ])
-            for rank, (rule_id, count) in enumerate(top_rules, 1):
-                pct = count / report.violation_count * 100 if report.violation_count else 0
-                lines.append(f"| {rank} | `{rule_id}` | {count:,} | {pct:.1f}% |")
+            lines.extend(["## 🔝 Top Violations", "| Rule | Count | % |", "|---|---|---|"])
+            for r, c in top_rules:
+                pct = c / report.violation_count * 100 if report.violation_count else 0
+                lines.append(f"| `{r}` | {c:,} | {pct:.1f}% |")
             lines.append("")
 
-        # Violations detail
+        # Violations Detail
         if self.config.include_violations_detail and report.violations:
-            lines.extend([
-                "## ❌ Violations Detail",
-                "",
-            ])
-            
-            shown = min(len(report.violations), self.config.max_violations_shown)
-            for v in report.violations[:shown]:
-                lines.extend([
-                    f"### Case: `{v.case_id}`",
-                    f"- **Rule:** `{v.rule_id}`",
-                    f"- **Message:** {v.message or 'N/A'}",
-                    f"- **State:** `{v.state}`",
-                    "",
-                ])
-            
-            if len(report.violations) > shown:
-                lines.append(f"*... and {len(report.violations) - shown} more violations*")
-                lines.append("")
+            lines.append("## ❌ Detail")
+            for v in report.violations[:self.config.max_violations_shown]:
+                lines.append(f"- **{v.case_id}** (`{v.rule_id}`): {v.message or ''} [{v.state}]")
+            if len(report.violations) > self.config.max_violations_shown:
+                lines.append(f"\n*(...and {len(report.violations) - self.config.max_violations_shown} more)*")
 
         # Recommendations
         if self.config.include_recommendations:
-            recommendations = self._generate_recommendations(report, top_rules)
-            if recommendations:
-                lines.extend([
-                    "## 💡 Recommendations",
-                    "",
-                ])
-                for i, rec in enumerate(recommendations, 1):
-                    lines.append(f"{i}. {rec}")
-                lines.append("")
-
-        # Footer
-        lines.extend([
-            "---",
-            "",
-            "*Generated by Priqualis v0.1.0*",
-        ])
+            recs = []
+            if report.pass_rate < 0.9: recs.append(f"High violation rate ({100-pass_rate:.1f}%). Review data entry.")
+            if top_rules and (top_rules[0][1] / report.violation_count > 0.3): recs.append(f"Rule `{top_rules[0][0]}` is dominant.")
+            if recs:
+                lines.extend(["\n## 💡 Recommendations"] + [f"- {r}" for r in recs])
 
         return "\n".join(lines)
 
-    def generate_json(
-        self,
-        report: ValidationReport,
-        batch_id: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        Generate JSON report.
-
-        Args:
-            report: Validation report
-            batch_id: Optional batch identifier
-
-        Returns:
-            Dictionary suitable for JSON serialization
-        """
+    def generate_json(self, report: ValidationReport, batch_id: str | None = None) -> dict[str, Any]:
         from collections import Counter
-        rule_counts = Counter(v.rule_id for v in report.violations)
-
         return {
             "batch_id": batch_id or f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            "generated_at": datetime.now().isoformat(),
-            "summary": {
-                "total_records": report.total_records,
-                "violations": report.violation_count,
-                "warnings": report.warning_count,
-                "pass_rate": report.pass_rate,
-            },
-            "violations_by_rule": dict(rule_counts),
-            "top_rules": rule_counts.most_common(5),
-            "violations_detail": [
-                {
-                    "case_id": v.case_id,
-                    "rule_id": v.rule_id,
-                    "message": v.message,
-                    "state": v.state if isinstance(v.state, str) else v.state.value if hasattr(v.state, 'value') else str(v.state),
-                }
-                for v in report.violations[:self.config.max_violations_shown]
-            ],
+            "summary": {"total": report.total_records, "violations": report.violation_count, "pass_rate": report.pass_rate},
+            "violations_by_rule": dict(Counter(v.rule_id for v in report.violations)),
+            "details": [{"case": v.case_id, "rule": v.rule_id, "msg": v.message} for v in report.violations[:self.config.max_violations_shown]]
         }
 
-    def generate_pdf(
-        self,
-        report: ValidationReport,
-        output_path: Path,
-        batch_id: str | None = None,
-    ) -> Path:
-        """
-        Generate PDF report.
-
-        Requires weasyprint to be installed.
-
-        Args:
-            report: Validation report
-            output_path: Path to save PDF
-            batch_id: Optional batch identifier
-
-        Returns:
-            Path to generated PDF
-        """
-        try:
-            import markdown
-            from weasyprint import HTML
-        except ImportError as e:
-            logger.error("PDF generation requires 'weasyprint' and 'markdown': %s", e)
-            raise ImportError(
-                "PDF generation requires 'weasyprint' and 'markdown'. "
-                "Install with: pip install weasyprint markdown"
-            ) from e
-
-        # Generate markdown first
-        md_content = self.generate_markdown(report, batch_id)
-
-        # Convert to HTML
-        html_body = markdown.markdown(
-            md_content,
-            extensions=["tables", "fenced_code"],
-        )
-
-        # Wrap in styled template
-        html_template = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {{
-            font-family: 'Segoe UI', Arial, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-        }}
-        h1 {{
-            color: #1a5f7a;
-            border-bottom: 2px solid #1a5f7a;
-            padding-bottom: 10px;
-        }}
-        h2 {{
-            color: #2a7f9a;
-            margin-top: 30px;
-        }}
-        h3 {{
-            color: #444;
-        }}
-        table {{
-            border-collapse: collapse;
-            width: 100%;
-            margin: 15px 0;
-        }}
-        th, td {{
-            border: 1px solid #ddd;
-            padding: 10px 12px;
-            text-align: left;
-        }}
-        th {{
-            background: #1a5f7a;
-            color: white;
-        }}
-        tr:nth-child(even) {{
-            background: #f9f9f9;
-        }}
-        code {{
-            background: #f4f4f4;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Consolas', monospace;
-        }}
-        hr {{
-            border: none;
-            border-top: 1px solid #ddd;
-            margin: 30px 0;
-        }}
-        em {{
-            color: #666;
-        }}
-    </style>
-</head>
-<body>
-{{html_body}}
-</body>
-</html>
-"""
-
-        # Generate PDF
-        output_path = Path(output_path)
-        HTML(string=html_template).write_pdf(output_path)
+    def generate_pdf(self, report: ValidationReport, output_path: Path, batch_id: str | None = None) -> Path:
+        import markdown
+        from weasyprint import HTML
         
-        logger.info("Generated PDF report: %s", output_path)
-        return output_path
-
-    def _generate_recommendations(
-        self,
-        report: ValidationReport,
-        top_rules: list[tuple[str, int]],
-    ) -> list[str]:
+        md = self.generate_markdown(report, batch_id)
+        html = f"""
+        <html><head><style>
+            body {{ font-family: sans-serif; max-width: 800px; margin: 20px auto; }}
+            h1 {{ border-bottom: 2px solid #1a5f7a; color: #1a5f7a; }}
+            table {{ border-collapse: collapse; width: 100%; margin: 10px 0; }}
+            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+            th {{ background: #1a5f7a; color: white; }}
+            code {{ background: #f4f4f4; padding: 2px 4px; border-radius: 3px; }}
+        </style></head><body>{markdown.markdown(md, extensions=['tables'])}</body></html>
         """
-        Generate automated recommendations based on validation results.
+        HTML(string=html).write_pdf(target=output_path)
+        return Path(output_path)
 
-        Args:
-            report: Validation report
-            top_rules: Top violation rules with counts
-
-        Returns:
-            List of recommendation strings
-        """
-        recommendations = []
-
-        # High violation rate
-        if report.pass_rate < 0.9:
-            recommendations.append(
-                f"**High violation rate ({(1-report.pass_rate)*100:.1f}%)** - "
-                "Review data entry procedures and consider additional training."
-            )
-
-        # Dominant rule
-        if top_rules and report.violation_count > 0:
-            top_rule, top_count = top_rules[0]
-            top_pct = top_count / report.violation_count * 100
-            if top_pct > 30:
-                recommendations.append(
-                    f"**Rule `{top_rule}`** accounts for {top_pct:.0f}% of violations - "
-                    "Focus remediation efforts on this specific issue."
-                )
-
-        # Many warnings
-        if report.warning_count > report.violation_count:
-            recommendations.append(
-                "**High warning count** - Review warning-level rules to prevent "
-                "potential future rejections."
-            )
-
-        # Good pass rate
-        if report.pass_rate >= 0.95:
-            recommendations.append(
-                "✅ **Excellent compliance** - Pass rate above 95%. "
-                "Continue current data quality practices."
-            )
-
-        return recommendations
-
-
-# =============================================================================
-# Convenience Function
-# =============================================================================
-
-
-def generate_batch_report(
-    report: ValidationReport,
-    output_dir: Path | str,
-    batch_id: str | None = None,
-    formats: list[Literal["markdown", "json", "pdf"]] | None = None,
-    config: ReportConfig | None = None,
-) -> dict[str, Path]:
-    """
-    Generate batch report in multiple formats.
-
-    Convenience function that generates all requested format files.
-
-    Args:
-        report: Validation report from RuleEngine
-        output_dir: Directory to save reports
-        batch_id: Optional batch identifier
-        formats: List of formats to generate (default: ["markdown", "json"])
-        config: Report configuration
-
-    Returns:
-        Dictionary mapping format name to output path
-    """
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    formats = formats or ["markdown", "json"]
-    batch_id = batch_id or f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-    generator = ReportGenerator(config)
-    outputs: dict[str, Path] = {}
+def generate_batch_report(report: ValidationReport, output_dir: Path | str, batch_id: str | None = None, formats: list[str] | None = None, config: ReportConfig | None = None) -> dict[str, Path]:
+    out, gen = Path(output_dir), ReportGenerator(config)
+    out.mkdir(parents=True, exist_ok=True)
+    formats, results, bid = formats or ["markdown", "json"], {}, batch_id or f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     if "markdown" in formats:
-        md_content = generator.generate_markdown(report, batch_id)
-        md_path = output_dir / f"{batch_id}.md"
-        md_path.write_text(md_content, encoding="utf-8")
-        outputs["markdown"] = md_path
-        logger.info("Generated Markdown report: %s", md_path)
-
+        (p := out / f"{bid}.md").write_text(gen.generate_markdown(report, bid), "utf-8"); results["markdown"] = p
     if "json" in formats:
-        import json
-        json_content = generator.generate_json(report, batch_id)
-        json_path = output_dir / f"{batch_id}.json"
-        json_path.write_text(json.dumps(json_content, indent=2, ensure_ascii=False), encoding="utf-8")
-        outputs["json"] = json_path
-        logger.info("Generated JSON report: %s", json_path)
-
+        import json; (p := out / f"{bid}.json").write_text(json.dumps(gen.generate_json(report, bid), indent=2), "utf-8"); results["json"] = p
     if "pdf" in formats:
-        pdf_path = output_dir / f"{batch_id}.pdf"
-        generator.generate_pdf(report, pdf_path, batch_id)
-        outputs["pdf"] = pdf_path
-
-    return outputs
+        results["pdf"] = gen.generate_pdf(report, out / f"{bid}.pdf", bid)
+    
+    return results

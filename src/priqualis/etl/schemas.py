@@ -9,9 +9,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
 
-# =============================================================================
-# Enums
-# =============================================================================
+
 
 
 class AdmissionMode(str, Enum):
@@ -39,9 +37,7 @@ class Gender(str, Enum):
     FEMALE = "F"
 
 
-# =============================================================================
-# Component Models
-# =============================================================================
+
 
 
 class PatientInfo(BaseModel):
@@ -118,9 +114,7 @@ class JGPInfo(BaseModel):
         return v
 
 
-# =============================================================================
-# Main Claim Record
-# =============================================================================
+
 
 
 class ClaimRecord(BaseModel):
@@ -142,14 +136,8 @@ class ClaimRecord(BaseModel):
     # Hospitalization
     admission_date: date
     discharge_date: date
-    admission_mode: AdmissionMode | str = Field(
-        ...,
-        description="Mode of admission (emergency/planned/transfer)",
-    )
-    department_code: str | None = Field(
-        None,
-        description="NFZ department code",
-    )
+    admission_mode: AdmissionMode | str = Field(..., description="Mode of admission")
+    department_code: str | None = None
 
     # Clinical
     jgp_code: str | None = Field(None, description="JGP group code")
@@ -216,9 +204,7 @@ class ClaimRecord(BaseModel):
     }
 
 
-# =============================================================================
-# Batch Models
-# =============================================================================
+
 
 
 class ClaimBatch(BaseModel):
@@ -262,9 +248,7 @@ class ClaimBatch(BaseModel):
         return [r for r in self.records if r.jgp_code == jgp_code]
 
 
-# =============================================================================
-# Processed Output
-# =============================================================================
+
 
 
 class ProcessedBatch(BaseModel):

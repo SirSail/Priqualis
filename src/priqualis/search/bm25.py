@@ -15,48 +15,11 @@ from priqualis.core.exceptions import SearchError
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# Protocols
-# =============================================================================
-
-
-class TextTokenizer(Protocol):
-    """Protocol for text tokenization."""
-
-    def tokenize(self, text: str) -> list[str]:
-        """Tokenize text into terms."""
-        ...
-
-
-# =============================================================================
-# Simple Tokenizer
-# =============================================================================
-
-
 class SimpleTokenizer:
-    """
-    Simple whitespace tokenizer with lowercasing.
-
-    Suitable for structured medical codes (ICD-10, JGP, procedures).
-    """
-
-    def __init__(self, lowercase: bool = True):
-        self.lowercase = lowercase
-
-    def tokenize(self, text: str) -> list[str]:
-        """Tokenize text by whitespace."""
-        if self.lowercase:
-            text = text.lower()
-        return text.split()
-
-    def tokenize_batch(self, texts: list[str]) -> list[list[str]]:
-        """Tokenize multiple texts."""
-        return [self.tokenize(t) for t in texts]
-
-
-# =============================================================================
-# BM25 Index
-# =============================================================================
+    """Whitespace tokenizer."""
+    def __init__(self, lowercase: bool = True): self.lowercase = lowercase
+    def tokenize(self, text: str) -> list[str]: return (text.lower() if self.lowercase else text).split()
+    def tokenize_batch(self, texts: list[str]) -> list[list[str]]: return [self.tokenize(t) for t in texts]
 
 
 class BM25Index:
@@ -66,25 +29,11 @@ class BM25Index:
     Uses bm25s library for fast indexing and retrieval.
     """
 
-    def __init__(
-        self,
-        k1: float = 1.5,
-        b: float = 0.75,
-        tokenizer: TextTokenizer | None = None,
-    ):
-        """
-        Initialize BM25 index.
-
-        Args:
-            k1: Term frequency saturation parameter
-            b: Length normalization parameter
-            tokenizer: Text tokenizer (uses SimpleTokenizer if None)
-        """
-        self.k1 = k1
-        self.b = b
+    def __init__(self, k1: float = 1.5, b: float = 0.75, tokenizer: SimpleTokenizer | None = None):
+        self.k1, self.b = k1, b
         self.tokenizer = tokenizer or SimpleTokenizer()
-        self.index: bm25s.BM25 | None = None
-        self.corpus_ids: list[str] = []
+        self.index = None
+        self.corpus_ids = []
         self._is_built = False
 
     @property
