@@ -1,23 +1,11 @@
-"""
-Priqualis UI - Streamlit Application.
-
-Main entry point for the Streamlit-based user interface.
-
-Run with: streamlit run ui/app.py
-"""
 
 import logging
 from pathlib import Path
 
 import streamlit as st
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# =============================================================================
-# Page Configuration
-# =============================================================================
 
 st.set_page_config(
     page_title="Priqualis",
@@ -25,10 +13,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# =============================================================================
-# Session State Initialization
-# =============================================================================
 
 if "validation_result" not in st.session_state:
     st.session_state.validation_result = None
@@ -39,15 +23,10 @@ if "uploaded_df" not in st.session_state:
 if "validation_history" not in st.session_state:
     st.session_state.validation_history = []
 
-# =============================================================================
-# Sidebar Navigation
-# =============================================================================
-
 st.sidebar.title("🏥 Priqualis")
 st.sidebar.markdown("Pre-submission Compliance Validator")
 st.sidebar.divider()
 
-# Navigation
 page = st.sidebar.radio(
     "Navigate",
     options=[
@@ -62,21 +41,15 @@ page = st.sidebar.radio(
 
 st.sidebar.divider()
 
-# Show validation history count
 if st.session_state.validation_history:
     st.sidebar.success(f"📝 {len(st.session_state.validation_history)} validations in history")
 
 st.sidebar.caption("v0.1.0 | © 2024-2026 Priqualis")
 
-# =============================================================================
-# Dashboard Page
-# =============================================================================
 
 if page == "🏠 Dashboard":
-    st.title("🏠 Dashboard")
-    st.markdown("Welcome to **Priqualis** - your healthcare claim compliance assistant.")
+    st.title("Dashboard")
 
-    # Quick stats from session history
     total_validated = sum(h.get("total", 0) for h in st.session_state.validation_history)
     total_violations = sum(h.get("violations", 0) for h in st.session_state.validation_history)
 
@@ -88,50 +61,25 @@ if page == "🏠 Dashboard":
 
     st.divider()
 
-    # Quick actions
-    st.subheader("Quick Actions")
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("### 📤 Upload Claims")
-        st.markdown("Upload a batch of claims for validation.")
-        st.info("👈 Select **Triage** from sidebar")
-
-    with col2:
-        st.markdown("### 🔍 Find Similar")
-        st.markdown("Find similar approved cases.")
-        st.info("👈 Select **Similar Cases** from sidebar")
-
-    with col3:
-        st.markdown("### 📊 View Reports")
-        st.markdown("Check KPIs and analytics.")
-        st.info("👈 Select **KPIs** from sidebar")
-
-    # Validation history
     if st.session_state.validation_history:
         st.divider()
         st.subheader("📜 Recent Validations")
         for i, h in enumerate(reversed(st.session_state.validation_history[-5:])):
             st.markdown(f"**{h.get('batch_id')}**: {h.get('total')} claims, {h.get('violations')} violations, {h.get('pass_rate'):.1%} pass rate")
 
-# =============================================================================
-# Triage Page
-# =============================================================================
 
 elif page == "📋 Triage":
     st.title("📋 Claim Triage")
 
-    # Import and initialize RuleEngine once for the page
+
     from priqualis.rules import RuleEngine
     engine = RuleEngine(Path("config/rules"))
 
-    # Initialize additional session state
     if "uploaded_filename" not in st.session_state:
         st.session_state.uploaded_filename = None
     if "generated_patches" not in st.session_state:
         st.session_state.generated_patches = None
 
-    # File upload
     uploaded_file = st.file_uploader(
         "Upload claims batch",
         type=["csv", "parquet"],
@@ -139,40 +87,33 @@ elif page == "📋 Triage":
         key="file_uploader"
     )
 
-    # Process upload ONLY if it's a NEW file (different filename)
     if uploaded_file is not None:
-        # Check if this is a new file by comparing filename
         if st.session_state.uploaded_filename != uploaded_file.name:
             import polars as pl
             from priqualis.etl.processor import ClaimImporter
             
             importer = ClaimImporter()
             
-            # Use temp file to read with polars
             from tempfile import NamedTemporaryFile
             suffix = ".csv" if uploaded_file.name.endswith(".csv") else ".parquet"
             with NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                 tmp.write(uploaded_file.getvalue())
                 df = importer.load(Path(tmp.name))
                 
-            # Store in session state
             st.session_state.uploaded_df = df
             st.session_state.uploaded_filename = uploaded_file.name
             st.session_state.validation_result = None  # Reset only for NEW file
             st.session_state.generated_patches = None  # Reset patches too
             st.success(f"✅ Loaded: {uploaded_file.name} ({df.shape[0]} claims)")
 
-    # Show loaded data (from session state)
     if st.session_state.uploaded_df is not None:
         df = st.session_state.uploaded_df
         
-        # Show file info
         st.info(f"📄 Current file: **{st.session_state.uploaded_filename or 'Unknown'}** | {len(df)} records")
         
         with st.expander("Preview data (first 10 rows)", expanded=False):
             st.dataframe(df.head(10))
 
-        # Validate button
         col1, col2 = st.columns([1, 3])
         with col1:
             validate_clicked = st.button("🚀 Validate", type="primary", key="btn_validate")
@@ -209,9 +150,6 @@ elif page == "📋 Triage":
             
             st.rerun()  # Refresh to show results
 
-        # =====================================================================
-        # VALIDATION RESULTS - Show if validation was done
-        # =====================================================================
         if st.session_state.validation_result:
             report = st.session_state.validation_result
 
@@ -239,10 +177,6 @@ elif page == "📋 Triage":
                     for rule, count in sorted(rule_counts.items())
                 ])
                 st.bar_chart(rule_df.set_index("Rule"))
-
-            # =================================================================
-            # AutoFix Section
-            # =================================================================
             st.divider()
             st.subheader("🔧 AutoFix")
             
@@ -326,9 +260,6 @@ elif page == "📋 Triage":
                         st.session_state.generated_patches = None
                         st.rerun()
 
-            # =================================================================
-            # Export Section
-            # =================================================================
             st.divider()
             st.subheader("📄 Export Report")
             
@@ -360,10 +291,6 @@ elif page == "📋 Triage":
             
             with col3:
                 st.info("PDF requires weasyprint")
-
-            # =================================================================
-            # LLM Explanations
-            # =================================================================
             st.divider()
             st.subheader("🤖 Rule Explanations")
             
@@ -386,10 +313,6 @@ elif page == "📋 Triage":
                         with st.expander("📚 Citations"):
                             for cite in explanation.citations:
                                 st.markdown(f"- {cite}")
-
-            # =================================================================
-            # Violations Detail
-            # =================================================================
             st.divider()
             st.subheader("❌ Violations Detail")
             
@@ -410,9 +333,6 @@ elif page == "📋 Triage":
     else:
         st.info("👆 Upload a CSV or Parquet file to start validation.")
 
-# =============================================================================
-# Similar Cases Page
-# =============================================================================
 
 elif page == "🔍 Similar Cases":
     st.title("🔍 Similar Cases")
@@ -580,11 +500,6 @@ rationale: "Based on similar approved case {case_id}"
 """, language="yaml")
 
 
-
-# =============================================================================
-# KPIs Page
-# =============================================================================
-
 elif page == "📊 KPIs":
     st.title("📊 KPIs & Analytics")
 
@@ -596,9 +511,6 @@ elif page == "📊 KPIs":
     with col2:
         end_date = st.date_input("To", value=date.today())
 
-    # =========================================================
-    # Shadow Mode: Import Rejections
-    # =========================================================
     with st.expander("📥 Shadow Mode: Import NFZ Rejections"):
         st.markdown("Upload a CSV file with NFZ rejections to update FPA tracking.")
         rejection_file = st.file_uploader("Upload NFZ Rejection CSV", type="csv", key="rej_upload")
@@ -683,19 +595,14 @@ elif page == "📊 KPIs":
     days = (end_date - start_date).days
     if days <= 0:
         days = 30  # Default to 30 days if range is invalid
-    
-    # Generate realistic FPA trend with some variation
-    # Use a random walk around the base FPA rate for more natural looking data
     np.random.seed(42)  # For reproducibility within session
     base_fpa = fpa_rate if fpa_rate else 0.95
-    
-    # Create a random walk with mean reversion
-    daily_changes = np.random.normal(0, 0.02, days)  # Daily fluctuations
+
+
+    daily_changes = np.random.normal(0, 0.02, days)  
     cumulative = np.cumsum(daily_changes)
-    # Mean reversion: pull back toward base
     reversion_factor = 0.1
     fpa_values = base_fpa + cumulative - reversion_factor * np.arange(days) * np.mean(cumulative) / max(days, 1)
-    # Clip to valid range but with room for variation
     fpa_values = np.clip(fpa_values, 0.80, 0.99)
     
     trend_data = pd.DataFrame({
@@ -708,22 +615,15 @@ elif page == "📊 KPIs":
     else:
         st.info("No trend data available for selected period.")
 
-    # =========================================================
-    # Anomaly Alerts
-    # =========================================================
     st.divider()
     st.subheader("🚨 Anomaly Alerts")
 
     from priqualis.shadow.alerts import AnomalyDetector, AlertManager, Alert
-    
-    # Initialize detector and manager
     detector = AnomalyDetector()
     manager = AlertManager()
     
-    # Generate some mock historical data for rules
     if not st.session_state.get("alert_history_initialized"):
         for rule in ["R001", "R002", "R003", "R004"]:
-            # Normal history: around 5-10 errors
             history = [np.random.randint(5, 15) for _ in range(10)]
             detector._history[rule] = history
         
@@ -765,9 +665,6 @@ elif page == "📊 KPIs":
                     if len(chart_data) > 0:
                         st.line_chart(pd.DataFrame({"Violation Count": chart_data}))
 
-# =============================================================================
-# Settings Page
-# =============================================================================
 
 elif page == "⚙️ Settings":
     st.title("⚙️ Settings")
