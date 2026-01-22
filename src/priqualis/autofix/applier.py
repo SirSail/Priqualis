@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 import yaml
-from priqualis.autofix.generator import AuditEntry, Patch, PatchOperation
+from priqualis.autofix.models import AuditEntry, Patch, PatchOperation
 from priqualis.core.exceptions import AutoFixError
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,10 @@ class PatchApplier:
     def __init__(self, audit_dir: Path | None = None):
         self.audit_dir = audit_dir
         self._applied_patches = []
+
+    @property
+    def applied_patches(self) -> list:
+        return self._applied_patches
 
     def apply(self, patch: Patch, record: dict, mode: ApplyMode | str = "dry-run") -> dict:
         mode = ApplyMode(mode) if isinstance(mode, str) else mode
@@ -62,3 +66,12 @@ class PatchApplier:
 
 def apply_patch(patch: Patch, record: dict, mode: str = "dry-run") -> dict:
     return PatchApplier().apply(patch, record, mode)
+
+def export_patches_yaml(patches: list[Patch], output_path: Path | str) -> Path:
+    """Export patches to YAML file."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = [p.model_dump(mode='json') for p in patches]
+    path.write_text(yaml.dump(data, allow_unicode=True, default_flow_style=False))
+    logger.info("Exported %d patches to %s", len(patches), path)
+    return path

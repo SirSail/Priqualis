@@ -18,10 +18,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# =============================================================================
-# Request/Response Models
-# =============================================================================
-
 
 class PatchOperationDTO(BaseModel):
     """Patch operation."""
@@ -78,26 +74,12 @@ class ApplyPatchResponse(BaseModel):
     audit_entry: AuditEntryDTO | None = None
 
 
-# =============================================================================
-# Endpoints
-# =============================================================================
-
 
 @router.post("/autofix/generate", response_model=list[PatchDTO])
 async def generate_patches(
     request: GeneratePatchRequest,
     generator: PatchGenerator = Depends(get_patch_generator),
 ) -> list[PatchDTO]:
-    """
-    Generate patches for violations.
-
-    Args:
-        request: Violations and records
-        generator: Injected patch generator
-
-    Returns:
-        List of generated patches
-    """
     from priqualis.rules.models import RuleResult, RuleState
 
     # Convert violations to RuleResult
@@ -141,17 +123,7 @@ async def apply_patch(
     request: ApplyPatchRequest,
     applier: PatchApplier = Depends(get_patch_applier),
 ) -> ApplyPatchResponse:
-    """
-    Apply a patch to a record.
-
-    Args:
-        request: Patch and target record
-        applier: Injected patch applier
-
-    Returns:
-        Modified record and audit info
-    """
-    from priqualis.autofix.generator import Patch, PatchOperation
+    from priqualis.autofix.models import Patch, PatchOperation
     from priqualis.rules.models import AutoFixOperation
 
     # Convert DTO to Patch
