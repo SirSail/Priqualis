@@ -538,7 +538,18 @@ elif page == "📊 KPIs":
                     st.session_state.shadow_stats["total_rejections"] += len(records)
                     st.session_state.shadow_stats["by_code"].update(error_counts)
                     
-                st.success(f"✅ Imported {len(records)} rejection records!")
+                    # Persist to DuckDB
+                    try:
+                        from priqualis.storage import get_duckdb_store
+                        db = get_duckdb_store()
+                        rejection_dicts = [{"case_id": r.case_id, "rejection_date": r.rejection_date, 
+                                           "error_code": r.error_code, "error_message": r.error_message, 
+                                           "batch_id": r.batch_id} for r in records]
+                        db.import_rejections(rejection_dicts)
+                        st.success(f"✅ Imported {len(records)} rejections (persisted to DuckDB)")
+                    except Exception as e:
+                        st.warning(f"Session import OK, DuckDB failed: {e}")
+                    
                 st.rerun()
 
     # Fetch from session history or use defaults
