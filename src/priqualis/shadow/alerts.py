@@ -47,13 +47,34 @@ class AnomalyDetector:
         mean = sum(hist) / len(hist)
         std = (sum((x - mean) ** 2 for x in hist) / len(hist)) ** 0.5
         
-        if std == 0: return None if count <= mean else Alert(f"ALERT_{rule_id}", "zscore", "critical", rule_id, "Zero variance exceeded", count, mean, float("inf"))
+        if std == 0: 
+            if count <= mean:
+                return None
+            return Alert(
+                alert_id=f"ALERT_{rule_id}",
+                alert_type="zscore",
+                severity="critical",
+                rule_id=rule_id,
+                message="Zero variance exceeded",
+                current_value=count,
+                threshold=mean,
+                z_score=float("inf")
+            )
         
         z = (count - mean) / std
         if z < self.config.zscore_threshold: return None
         
         sev = "critical" if z >= self.config.critical_zscore else "warning"
-        return Alert(f"AL_{rule_id}_{datetime.now().strftime('%f')}", "zscore", sev, rule_id, f"Z-score {z:.1f} > {mean:.0f}", count, self.config.zscore_threshold, z)
+        return Alert(
+            alert_id=f"AL_{rule_id}_{datetime.now().strftime('%f')}",
+            alert_type="zscore",
+            severity=sev,
+            rule_id=rule_id,
+            message=f"Z-score {z:.1f} > {mean:.0f}",
+            current_value=count,
+            threshold=self.config.zscore_threshold,
+            z_score=z
+        )
 
     def check_batch(self, rule_counts: dict[str, int], record: bool = True) -> list[Alert]:
         alerts = []

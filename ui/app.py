@@ -632,7 +632,7 @@ elif page == "📊 KPIs":
         manager.add_alerts(alerts)
         
         # Add a critical alert manually for demo
-        manager.add_alert(Alert(
+        manager.add_alerts([Alert(
             alert_id="CRIT_01",
             alert_type="threshold",
             severity="critical",
@@ -640,7 +640,7 @@ elif page == "📊 KPIs":
             message="Rule R003 violation rate exceeded 5% threshold in recent batch.",
             current_value=128,
             threshold=50
-        ))
+        )])
         
         st.session_state.alert_manager = manager
         st.session_state.alert_history_initialized = True
@@ -651,7 +651,8 @@ elif page == "📊 KPIs":
         st.success("✅ No anomalies detected in the last 7 days")
     else:
         for alert in alerts:
-            with st.expander(f"{alert.icon} **{alert.rule_id}** - {alert.alert_type.upper()}: {alert.severity.upper()}"):
+            icon = "🔴" if alert.severity == "critical" else "🟡" if alert.severity == "warning" else "ℹ️"
+            with st.expander(f"{icon} **{alert.rule_id}** - {alert.alert_type.upper()}: {alert.severity.upper()}"):
                 st.markdown(f"**Message:** {alert.message}")
                 st.markdown(f"**Current Count:** `{alert.current_value}` (Threshold/Avg: `{alert.threshold}`)")
                 if alert.z_score:
@@ -659,7 +660,7 @@ elif page == "📊 KPIs":
                 st.caption(f"📅 Detected: {alert.detected_at.strftime('%Y-%m-%d %H:%M:%S')}")
 
                 # Simple chart for the specific rule
-                hist = detector.get_history(alert.rule_id)
+                hist = detector._history.get(alert.rule_id, [])
                 if hist:
                     chart_data = hist + [alert.current_value]
                     if len(chart_data) > 0:
