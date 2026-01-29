@@ -183,28 +183,23 @@ elif page == "📋 Triage":
             rules_with_autofix = [r for r in engine.rules if r.on_violation and r.on_violation.autofix_hint]
             fixable_violations = [v for v in report.violations if v.rule_id in {r.rule_id for r in rules_with_autofix}]
             
+            # Eagerly generate patches to show real coverage
+            if st.session_state.generated_patches is None and fixable_violations:
+                from priqualis.autofix import PatchGenerator
+                patch_gen = PatchGenerator()
+                records_dict = {row["case_id"]: row for row in df.to_dicts()}
+                st.session_state.generated_patches = patch_gen.generate_batch(fixable_violations, records_dict)
+            
+            patches = st.session_state.generated_patches or []
+            actual_coverage = len(patches) / len(report.violations) * 100 if report.violations else 0
+            
             col1, col2, col3 = st.columns(3)
-            col1.metric("Fixable Violations", len(fixable_violations))
-            col2.metric("AutoFix Coverage", f"{len(fixable_violations) / len(report.violations) * 100:.0f}%" if report.violations else "N/A")
+            col1.metric("Total Violations", len(report.violations))
+            col2.metric("AutoFix Coverage", f"{actual_coverage:.0f}%", help=f"{len(patches)}/{len(report.violations)} patches generated")
             col3.metric("Rules with AutoFix", f"{len(rules_with_autofix)}/{len(engine.rules)}")
             
-            # Generate patches button
-            if fixable_violations and not st.session_state.generated_patches:
-                if st.button("🔧 Generate All Patches", type="primary", key="btn_generate"):
-                    from priqualis.autofix import PatchGenerator
-                    patch_gen = PatchGenerator()
-                    
-                    with st.spinner(f"Generating patches for {len(fixable_violations)} violations..."):
-                        records_dict = {row["case_id"]: row for row in df.to_dicts()}
-                        patches = patch_gen.generate_batch(fixable_violations, records_dict)
-                        st.session_state.generated_patches = patches
-                    
-                    st.rerun()
-            
             # Show patches if generated
-            if st.session_state.generated_patches:
-                patches = st.session_state.generated_patches
-                
+            if patches:
                 st.success(f"📦 **{len(patches)} patches ready**")
                 
                 with st.expander("📋 View Patches (YAML)", expanded=False):
@@ -518,6 +513,7 @@ elif page == "📊 KPIs":
         if rejection_file:
             import polars as pl
             from priqualis.shadow import RejectionImporter, FPATracker
+            from collections import Counter
             
             rejection_df = pl.read_csv(rejection_file)
             st.dataframe(rejection_df.head(), use_container_width=True)
@@ -527,23 +523,46 @@ elif page == "📊 KPIs":
                     importer = RejectionImporter()
                     records = importer.import_from_df(rejection_df)
                     
-                    # Track in FPA (placeholder for now as we don't have persistent DB)
-                    st.success(f"Successfully imported {len(records)} rejection records!")
-                    st.info("FPA metrics updated based on imported data.")
+                    # Store in session state
+                    if "shadow_rejections" not in st.session_state:
+                        st.session_state.shadow_rejections = []
+                    st.session_state.shadow_rejections.extend(records)
+                    
+                    # Calculate FPA impact (RejectionRecord is Pydantic model, use attribute access)
+                    error_codes = [r.error_code for r in records]
+                    error_counts = Counter(error_codes)
+                    
+                    # Store rejection stats
+                    if "shadow_stats" not in st.session_state:
+                        st.session_state.shadow_stats = {"total_rejections": 0, "by_code": Counter()}
+                    st.session_state.shadow_stats["total_rejections"] += len(records)
+                    st.session_state.shadow_stats["by_code"].update(error_counts)
+                    
+                st.success(f"✅ Imported {len(records)} rejection records!")
+                st.rerun()
 
     # Fetch from session history or use defaults
     total_claims = sum(h.get("total", 0) for h in st.session_state.validation_history)
     total_violations = sum(h.get("violations", 0) for h in st.session_state.validation_history)
-    fpa_rate = (total_claims - total_violations) / total_claims if total_claims > 0 else 0.979
+    
+    # Include shadow mode rejections in FPA calculation
+    shadow_rejections = st.session_state.get("shadow_stats", {}).get("total_rejections", 0)
+    total_rejections = total_violations + shadow_rejections
+    
+    fpa_rate = (total_claims - total_rejections) / total_claims if total_claims > 0 else 0.979
 
     st.divider()
+    
+    # Show shadow mode status
+    if shadow_rejections > 0:
+        st.info(f"📥 **Shadow Mode Active:** {shadow_rejections} NFZ rejections imported")
 
     # Main metrics
     st.subheader("Key Performance Indicators")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("First-Pass Acceptance", f"{fpa_rate:.1%}", delta="↑ 2.1%")
-    col2.metric("Error Rate", f"{(1 - fpa_rate):.1%}", delta="↓ 0.5%", delta_color="inverse")
-    col3.metric("AutoFix Coverage", "85%", delta="↑ 5%")
+    col1.metric("First-Pass Acceptance", f"{fpa_rate:.1%}", delta=f"{'↑' if fpa_rate > 0.85 else '↓'} {abs(fpa_rate - 0.85)*100:.1f}%")
+    col2.metric("Error Rate", f"{(1 - fpa_rate):.1%}", delta=f"↓ {shadow_rejections}" if shadow_rejections else "↓ 0", delta_color="inverse")
+    col3.metric("NFZ Rejections", shadow_rejections, delta=f"+{shadow_rejections}" if shadow_rejections else None)
     col4.metric("Avg Processing", "15ms", delta="↓ 3ms")
 
     st.divider()

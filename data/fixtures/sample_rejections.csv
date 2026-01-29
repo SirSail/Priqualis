@@ -1,0 +1,11 @@
+case_id,rejection_date,error_code,error_message,batch_id
+ENC00001,2026-01-15,CWV_001,Missing main diagnosis,BATCH_001
+ENC00005,2026-01-15,CWV_002,Discharge date before admission date,BATCH_001
+ENC00012,2026-01-16,CWV_003,Missing JGP code,BATCH_001
+ENC00018,2026-01-16,CWV_001,Missing main diagnosis,BATCH_002
+ENC00023,2026-01-17,CWV_010,Procedure does not match JGP,BATCH_002
+ENC00031,2026-01-17,CWV_015,Invalid admission mode,BATCH_002
+ENC00042,2026-01-18,CWV_020,Missing department code,BATCH_003
+ENC00055,2026-01-18,CWV_025,Invalid tariff value,BATCH_003
+ENC00061,2026-01-19,CWV_001,Missing main diagnosis,BATCH_003
+ENC00078,2026-01-20,CWV_003,Missing JGP code,BATCH_004
