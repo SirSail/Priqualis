@@ -1,8 +1,4 @@
-"""
-AutoFix module for Priqualis.
 
-Generates and applies patches to fix rule violations.
-"""
 
 from priqualis.autofix.models import (
     AuditEntry,

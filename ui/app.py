@@ -80,31 +80,45 @@ elif page == "📋 Triage":
     if "generated_patches" not in st.session_state:
         st.session_state.generated_patches = None
 
-    uploaded_file = st.file_uploader(
-        "Upload claims batch",
-        type=["csv", "parquet"],
-        help="Upload CSV or Parquet file with claim records",
-        key="file_uploader"
-    )
+    # Persistent State Handling
+    if st.session_state.uploaded_df is not None:
+        col_file, col_reset = st.columns([5, 1])
+        with col_file:
+            st.success(f"📂 **File Loaded:** {st.session_state.uploaded_filename or 'Unknown'} ({st.session_state.uploaded_df.height} records)")
+        with col_reset:
+            if st.button("🔄 New File", key="btn_reset_file", help="Upload a different file"):
+                st.session_state.uploaded_df = None
+                st.session_state.validation_result = None
+                st.session_state.generated_patches = None
+                st.session_state.uploaded_filename = None
+                st.rerun()
+    else:
+        uploaded_file = st.file_uploader(
+            "Upload claims batch",
+            type=["csv", "parquet"],
+            help="Upload CSV or Parquet file with claim records",
+            key="file_uploader"
+        )
 
-    if uploaded_file is not None:
-        if st.session_state.uploaded_filename != uploaded_file.name:
-            import polars as pl
-            from priqualis.etl.processor import ClaimImporter
-            
-            importer = ClaimImporter()
-            
-            from tempfile import NamedTemporaryFile
-            suffix = ".csv" if uploaded_file.name.endswith(".csv") else ".parquet"
-            with NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                tmp.write(uploaded_file.getvalue())
-                df = importer.load(Path(tmp.name))
+        if uploaded_file is not None:
+            # Only process if it's a new file or we don't have data
+            if st.session_state.uploaded_filename != uploaded_file.name:
+                import polars as pl
+                from priqualis.etl.processor import ClaimImporter
                 
-            st.session_state.uploaded_df = df
-            st.session_state.uploaded_filename = uploaded_file.name
-            st.session_state.validation_result = None  # Reset only for NEW file
-            st.session_state.generated_patches = None  # Reset patches too
-            st.success(f"✅ Loaded: {uploaded_file.name} ({df.shape[0]} claims)")
+                importer = ClaimImporter()
+                
+                from tempfile import NamedTemporaryFile
+                suffix = ".csv" if uploaded_file.name.endswith(".csv") else ".parquet"
+                with NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                    tmp.write(uploaded_file.getvalue())
+                    df = importer.load(Path(tmp.name))
+                    
+                st.session_state.uploaded_df = df
+                st.session_state.uploaded_filename = uploaded_file.name
+                st.session_state.validation_result = None  # Reset only for NEW file
+                st.session_state.generated_patches = None  # Reset patches too
+                st.rerun()  # Rerun to switch UI to "Loaded" state
 
     if st.session_state.uploaded_df is not None:
         df = st.session_state.uploaded_df
