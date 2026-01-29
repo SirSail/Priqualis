@@ -59,15 +59,10 @@ dmypy.json
 .env.local
 .env.*.local
 
-# Data (sample data, not tracked)
-data/raw/*
-data/processed/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/fixtures/
+# Data - tracked for demo purposes
+!data/
 
-# Parquet / DuckDB files
-*.parquet
+# DuckDB files (not tracked)
 *.duckdb
 *.duckdb.wal
 
