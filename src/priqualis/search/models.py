@@ -1,5 +1,3 @@
-"""Search Models for Priqualis."""
-
 import logging
 from dataclasses import dataclass, field
 from enum import Enum

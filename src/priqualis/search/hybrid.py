@@ -1,5 +1,3 @@
-"""Hybrid Search for Priqualis."""
-
 import logging
 from typing import Literal
 from priqualis.search.bm25 import BM25Index
@@ -27,8 +25,6 @@ def linear_fusion(bm25_res: list[tuple[str, float]], vec_res: list[tuple[str, fl
     return sorted(fused, key=lambda x: x[1], reverse=True)
 
 class HybridSearch:
-    """Combine BM25 and vector search."""
-
     def __init__(self, bm25_index: BM25Index, vector_store: VectorStore, embedding_service: EmbeddingService, alpha: float = 0.5):
         self.bm25, self.vectors, self.embeddings, self.alpha = bm25_index, vector_store, embedding_service, alpha
         self._claim_cache = {}
