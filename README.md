@@ -23,6 +23,7 @@ Priqualis validates healthcare billing packages before submission to NFZ (Polish
 | **LLM Explain** | AI-generated explanations citing NFZ rule base (CWV/JGP) |
 | **Anomaly Alerts** | Z-score based detection when error-codes spike |
 | **PII Masking** | Deterministic hashing keeps masked data joinable without PII leaks |
+| **DuckDB Storage** | Persistent analytics: validation runs, audit logs, FPA history, rejections |
 
 ---
 
@@ -54,6 +55,7 @@ Priqualis validates healthcare billing packages before submission to NFZ (Polish
 | Layer | Technology | Version |
 |-------|------------|---------|
 | **Data Processing** | Polars, Pydantic v2 | ≥1.20, ≥2.10 |
+| **Storage** | DuckDB | ≥1.1 |
 | **Search (Sparse)** | bm25s | ≥0.2 |
 | **Search (Dense)** | Qdrant (HNSW) | ≥1.12 |
 | **Embeddings** | intfloat/multilingual-e5-small | 384 dims |
